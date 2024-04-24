@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
+	_ "github.com/lib/pq"
 	"github.com/twilio/twilio-go/twiml"
 )
 
@@ -31,6 +35,12 @@ type config struct {
 		authToken  string
 		fromNumber string
 	}
+	db struct {
+		dsn          string
+		maxOpenConns int
+		maxIdleConns int
+		maxIdleTime  string
+	}
 }
 
 type application struct {
@@ -42,6 +52,7 @@ func (app *application) handler() http.Handler {
 	router.HandleFunc("GET /sms", func(w http.ResponseWriter, r *http.Request) {
 		qs := r.URL.Query()
 		msgBody := qs.Get("Body")
+		msgFrom := qs.Get("From")
 		defaultRes := &twiml.MessagingMessage{
 			Body: "message received",
 		}
@@ -53,7 +64,7 @@ func (app *application) handler() http.Handler {
 			w.Write([]byte(err.Error()))
 		}
 
-		fmt.Printf("MESSAGE RECEIVED: %s", msgBody)
+		fmt.Printf("MESSAGE RECEIVED: %s, %s", msgFrom, msgBody)
 		w.Header().Add("Content-Type", "text/xml")
 		w.Write([]byte(result))
 	})
@@ -70,6 +81,13 @@ func main() {
 
 	// server
 	flag.IntVar(&cfg.port, "server port", 6969, "port for recipe parrot server")
+
+	// Database Config
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "", "DB connection string")
+	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
+	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
+	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m",
+		"PostgreSQL max connection idle time")
 
 	// twilio
 	flag.StringVar(&cfg.twilio.accountSid, "twilio account sid", os.Getenv("TWILIO_ACCOUNT_SID"), "account sid for twilio messaging api")
@@ -90,4 +108,29 @@ func main() {
 	fmt.Print(err.Error())
 
 	// client := twilio.NewRestClient()
+}
+
+func openDB(cfg config) (*sql.DB, error) {
+	db, err := sql.Open("postgres", cfg.db.dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	db.SetMaxOpenConns(cfg.db.maxOpenConns)
+	db.SetMaxIdleConns(cfg.db.maxIdleConns)
+	duration, err := time.ParseDuration(cfg.db.maxIdleTime)
+	if err != nil {
+		return nil, err
+	}
+	db.SetConnMaxIdleTime(duration)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err = db.PingContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
