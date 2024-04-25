@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"recipe_parrot/m/internal/models"
 	"time"
 
 	_ "github.com/lib/pq"
-	"github.com/twilio/twilio-go/twiml"
 )
 
 // ARCHITECTURE
@@ -45,35 +45,7 @@ type config struct {
 
 type application struct {
 	config config
-}
-
-func (app *application) handler() http.Handler {
-	router := http.NewServeMux()
-	router.HandleFunc("GET /sms", func(w http.ResponseWriter, r *http.Request) {
-		qs := r.URL.Query()
-		msgBody := qs.Get("Body")
-		msgFrom := qs.Get("From")
-		defaultRes := &twiml.MessagingMessage{
-			Body: "message received",
-		}
-
-		result, err := twiml.Messages([]twiml.Element{defaultRes})
-		if err != nil {
-			fmt.Print("ERROR")
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-		}
-
-		fmt.Printf("MESSAGE RECEIVED: %s, %s", msgFrom, msgBody)
-		w.Header().Add("Content-Type", "text/xml")
-		w.Write([]byte(result))
-	})
-
-	router.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("status: available"))
-	})
-
-	return router
+	models models.Models
 }
 
 func main() {
@@ -83,7 +55,8 @@ func main() {
 	flag.IntVar(&cfg.port, "server port", 6969, "port for recipe parrot server")
 
 	// Database Config
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "", "DB connection string")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://recipe_parrot_user:Noah2002ndw@localhost/recipe_parrot?sslmode=disable",
+		"DB connection string")
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m",
@@ -94,8 +67,14 @@ func main() {
 	flag.StringVar(&cfg.twilio.authToken, "twilio auth token", os.Getenv("TWILIO_AUTH_TOKEN"), "auth token for twilio messaging api")
 	flag.StringVar(&cfg.twilio.fromNumber, "twilio from number", "+18447488119", "phone number used to send and receive messages to server")
 
+	db, err := openDB(cfg)
+	if err != nil {
+		return
+	}
+
 	app := &application{
 		config: cfg,
+		models: models.NewModels(db),
 	}
 
 	srv := &http.Server{
@@ -103,8 +82,8 @@ func main() {
 		Handler: app.handler(),
 	}
 
-	fmt.Printf("Server started on port %d", app.config.port)
-	err := srv.ListenAndServe()
+	fmt.Printf("Server started on port %d\n", app.config.port)
+	err = srv.ListenAndServe()
 	fmt.Print(err.Error())
 
 	// client := twilio.NewRestClient()
