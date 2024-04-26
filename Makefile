@@ -27,7 +27,7 @@ run/api:
 .PHONY: run/api/dev
 run/api/dev:
 	@echo 'Starting dev server'
-	@air -c .air.toml
+	@~/go/bin/air -c .air.toml
 
 ## db/psql: connect to the database using psql
 .PHONY: db/psql
