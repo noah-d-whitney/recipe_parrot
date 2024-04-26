@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"recipe_parrot/m/internal/models"
+	"recipe_parrot/m/internal/scraper"
 	"strings"
 
+	"github.com/gocolly/colly"
 	"github.com/twilio/twilio-go/twiml"
 )
 
@@ -66,6 +68,10 @@ func (app *application) handleAuthenticatedMessage(user *models.User, msg string
 		return "Send list here!!!"
 	case "NEW":
 		return "Create new shopping trip"
+	case "SCRAPE":
+		s := colly.NewCollector()
+		res := scraper.ScrapeDelishSite("https://www.allrecipes.com/recipe/277945/spicy-baked-shrimp/", s)
+		return res
 	}
 	return ""
 }
