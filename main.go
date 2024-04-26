@@ -52,7 +52,7 @@ func main() {
 	var cfg config
 
 	// server
-	flag.IntVar(&cfg.port, "server port", 2314, "port for recipe parrot server")
+	flag.IntVar(&cfg.port, "server port", 6000, "port for recipe parrot server")
 
 	// Database Config
 	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://recipe_parrot_user:Noah2002ndw@localhost/recipe_parrot?sslmode=disable",

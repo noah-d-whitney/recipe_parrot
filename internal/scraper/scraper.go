@@ -6,19 +6,26 @@ import (
 	"github.com/gocolly/colly"
 )
 
+type Recipe struct {
+	title       string
+	ingredients []ingredient
+}
+
 type ingredient struct {
 	quantity string
 	unit     string
 	name     string
 }
 
-func ScrapeDelishSite(url string, scraper *colly.Collector) string {
-	fmt.Println(url)
-	err := scraper.Visit(url)
-	if err != nil {
-		fmt.Printf("Error visiting: %s\n", err.Error())
-		return ""
-	}
+// TODO: create router func that takes in url and returns recipe site ID
+// TODO: create recipe and ingredients and sites tables to keep track of all these things
+// TODO: create scraper func that takes in scraper function and url and returns *recipe
+// TODO: create recipes model
+// TODO: create lists model
+
+func ScrapeDelishSite(url string) string {
+	scraper := colly.NewCollector()
+	recipe := new(Recipe)
 
 	scraper.OnError(func(_ *colly.Response, err error) {
 		fmt.Println(err.Error())
@@ -37,9 +44,20 @@ func ScrapeDelishSite(url string, scraper *colly.Collector) string {
 
 		ingredients = append(ingredients, ingr)
 	})
-	scraper.OnHTML("html", func(h *colly.HTMLElement) {
-		fmt.Println(h.ChildText("body"))
+
+	var title string
+	scraper.OnHTML("h1.article-heading", func(h *colly.HTMLElement) {
+		title = h.Text
 	})
 
-	return fmt.Sprintf("INGREDIENTS: %d\n", len(ingredients))
+	err := scraper.Visit(url)
+	if err != nil {
+		fmt.Printf("Error visiting: %s\n", err.Error())
+		return ""
+	}
+
+	recipe.title = title
+	recipe.ingredients = ingredients
+
+	return fmt.Sprintf("INGREDIENTS: %+v\n", recipe)
 }
