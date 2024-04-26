@@ -1,0 +1,10 @@
+root = "."
+tmp_dir = "bin"
+
+[build]
+  cmd = "make build/api"
+  full_bin = "make run/api"
+  delay = 1000
+  exclude_dir = ["assets", "migrations", "tmp", "vendor", "testdata"]
+  exclude_regex = ["_test.go"]
+  include_ext = ["go", "gohtml"]

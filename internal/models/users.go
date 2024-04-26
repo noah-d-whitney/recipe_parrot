@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strings"
 	"time"
 )
 
@@ -15,8 +14,8 @@ var (
 
 type User struct {
 	ID          int64
-	FirstName   string
-	LastName    string
+	FirstName   *string
+	LastName    *string
 	PhoneNumber string
 }
 
@@ -65,22 +64,17 @@ func (m *UserModel) Create(phoneNumber string) (*User, error) {
 	return user, nil
 }
 
-func (m *UserModel) AssignName(userID int64, fullName string) error {
+func (m *UserModel) AssignName(userID int64, firstName, lastName string) error {
 	stmt := `
 		UPDATE users
 			SET first_name = $1,
-				last_name = $2,
+				last_name = $2
 			WHERE id = $3`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	names := strings.Split(fullName, " ")
-	if len(names) != 2 {
-		return ErrUserNameInvalid
-	}
-
-	_, err := m.db.ExecContext(ctx, stmt, names[0], names[1], userID)
+	_, err := m.db.ExecContext(ctx, stmt, firstName, lastName, userID)
 	if err != nil {
 		return err
 	}

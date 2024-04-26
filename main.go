@@ -65,7 +65,7 @@ func main() {
 	// twilio
 	flag.StringVar(&cfg.twilio.accountSid, "twilio account sid", os.Getenv("TWILIO_ACCOUNT_SID"), "account sid for twilio messaging api")
 	flag.StringVar(&cfg.twilio.authToken, "twilio auth token", os.Getenv("TWILIO_AUTH_TOKEN"), "auth token for twilio messaging api")
-	flag.StringVar(&cfg.twilio.fromNumber, "twilio from number", "+18447488119", "phone number used to send and receive messages to server")
+	flag.StringVar(&cfg.twilio.fromNumber, "twilio from number", "+12402402001", "phone number used to send and receive messages to server")
 
 	db, err := openDB(cfg)
 	if err != nil {
