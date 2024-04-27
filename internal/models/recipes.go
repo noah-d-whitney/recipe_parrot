@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 )
 
@@ -10,7 +11,7 @@ type Recipe struct {
 	ID          int64
 	UserID      int64
 	Title       string
-	Ingredients []Ingredient
+	Ingredients []*Ingredient
 }
 
 type Ingredient struct {
@@ -56,9 +57,9 @@ func (m *RecipeModel) Get(recipeID, userID int64) (*Recipe, error) {
 		return nil, err
 	}
 
-	ingredients := make([]Ingredient, 0)
+	ingredients := make([]*Ingredient, 0)
 	for rows.Next() {
-		i := Ingredient{}
+		i := &Ingredient{}
 		err := rows.Scan(&i.ID, &i.Quantity, &i.Unit, &i.Name)
 		if err != nil {
 			_ = tx.Rollback()
@@ -68,8 +69,15 @@ func (m *RecipeModel) Get(recipeID, userID int64) (*Recipe, error) {
 	}
 	recipe.Ingredients = ingredients
 
+	err = tx.Commit()
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, err
+	}
+
 	return recipe, nil
 }
+
 func (m *RecipeModel) Create(r *Recipe) error {
 	insertRecipe := `
 		INSERT INTO recipes (title, user_id)
@@ -102,6 +110,13 @@ func (m *RecipeModel) Create(r *Recipe) error {
 			_ = tx.Rollback()
 			return err
 		}
+		fmt.Printf("INGREDIENT ID: %d\n", i.ID)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		_ = tx.Rollback()
+		return err
 	}
 
 	return nil

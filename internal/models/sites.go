@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -15,7 +16,7 @@ var (
 type Site string
 
 const (
-	all_recipes Site = "all_recipes"
+	all_recipes Site = "allrecipes"
 )
 
 type SiteModel struct {
@@ -27,6 +28,7 @@ func (m *SiteModel) parse(url string) (Site, error) {
 	s = strings.TrimPrefix(s, "https://www.")
 	idx := strings.Index(s, ".")
 	s = s[:idx]
+	fmt.Printf("SITE STRING: %s\n", s)
 
 	stmt := `SELECT name FROM sites WHERE name = $1`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -42,6 +44,7 @@ func (m *SiteModel) parse(url string) (Site, error) {
 			return Site(""), err
 		}
 	}
+	fmt.Printf("RESULT SITE: %s\n", result)
 
 	return result, nil
 }

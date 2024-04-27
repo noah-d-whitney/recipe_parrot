@@ -24,9 +24,9 @@ func scrape_all_recipes(url string) (*Recipe, error) {
 		fmt.Printf("Visiting: %s\n", r.URL)
 	})
 
-	ingredients := make([]Ingredient, 0)
+	ingredients := make([]*Ingredient, 0)
 	scraper.OnHTML("li.mntl-structured-ingredients__list-item", func(h *colly.HTMLElement) {
-		ingr := Ingredient{}
+		ingr := &Ingredient{}
 		ingr.Quantity = h.ChildText("span[data-ingredient-quantity]")
 		ingr.Unit = h.ChildText("span[data-ingredient-unit]")
 		ingr.Name = h.ChildText("span[data-ingredient-name]")
