@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"recipe_parrot/m/internal/models"
-	"recipe_parrot/m/internal/scraper"
-	"strings"
 
 	"github.com/twilio/twilio-go/twiml"
 )
@@ -60,18 +58,30 @@ func (app *application) handleIncomingMessage(w http.ResponseWriter, r *http.Req
 }
 
 func (app *application) handleAuthenticatedMessage(user *models.User, msg string) string {
-	msgStr := strings.Split(msg, " ")
-
-	switch msgStr[0] {
+	switch msg {
 	case "LIST":
 		return "Send list here!!!"
 	case "NEW":
 		return "Create new shopping trip"
-	case "SCRAPE":
-		res := scraper.ScrapeDelishSite("https://www.allrecipes.com/recipe/277945/spicy-baked-shrimp")
-		return res
+	default:
+		recipe, err := app.models.Sites.Scrape(msg)
+		if err != nil {
+			switch {
+			case errors.Is(err, models.ErrSiteNotSupported):
+				return "Recipes from provided site are currently not supported"
+			default:
+				return "Unrecognized input, send HELP for help"
+			}
+		}
+		recipe.UserID = user.ID
+
+		err = app.models.Recipes.Create(recipe)
+		if err != nil {
+			return "Issue saving recipe, please try again later"
+		}
+
+		return "Recipe added to shopping trip, send LIST for current list"
 	}
-	return ""
 }
 
 func (app *application) handleUnauthenticatedMessage(phoneNumber string, msg string) {
