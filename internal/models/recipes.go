@@ -10,6 +10,8 @@ import (
 type Recipe struct {
 	ID          int64
 	UserID      int64
+	ListID      int64
+	URL         string
 	Title       string
 	Ingredients []*Ingredient
 }
@@ -27,7 +29,7 @@ type RecipeModel struct {
 
 func (m *RecipeModel) Get(recipeID, userID int64) (*Recipe, error) {
 	getRecipe := `
-		SELECT id, user_id, title
+		SELECT id, user_id, title, list_id, url
 		FROM recipes
 		WHERE id = $1 AND user_id = $2`
 
@@ -45,7 +47,7 @@ func (m *RecipeModel) Get(recipeID, userID int64) (*Recipe, error) {
 		return nil, err
 	}
 
-	err = tx.QueryRowContext(ctx, getRecipe, recipeID, userID).Scan(&recipe.ID, &recipe.UserID, &recipe.Title)
+	err = tx.QueryRowContext(ctx, getRecipe, recipeID, userID).Scan(&recipe.ID, &recipe.UserID, &recipe.Title, &recipe.ListID, &recipe.URL)
 	if err != nil {
 		_ = tx.Rollback()
 		return nil, err
@@ -79,9 +81,11 @@ func (m *RecipeModel) Get(recipeID, userID int64) (*Recipe, error) {
 }
 
 func (m *RecipeModel) Create(r *Recipe) error {
+	getCurrentListID := `SELECT id FROM lists WHERE current = TRUE AND user_id = $1`
+
 	insertRecipe := `
-		INSERT INTO recipes (title, user_id)
-		VALUES ($1, $2)
+		INSERT INTO recipes (title, user_id, list_id, url)
+		VALUES ($1, $2, $3, $4)
 		RETURNING id`
 
 	insertIngredient := `
@@ -97,7 +101,13 @@ func (m *RecipeModel) Create(r *Recipe) error {
 		return err
 	}
 
-	err = tx.QueryRowContext(ctx, insertRecipe, r.Title, r.UserID).Scan(&r.ID)
+	err = tx.QueryRowContext(ctx, getCurrentListID, r.UserID).Scan(&r.ListID)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	err = tx.QueryRowContext(ctx, insertRecipe, r.Title, r.UserID, r.ListID, r.URL).Scan(&r.ID)
 	if err != nil {
 		_ = tx.Rollback()
 		return err

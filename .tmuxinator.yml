@@ -49,4 +49,4 @@ windows:
   - recipe_parrot: nvim
   - psql: make db/psql
   - tasks: cd ~
-  - ngrok: ngrok http 2314
+  - ngrok: ngrok http 6000

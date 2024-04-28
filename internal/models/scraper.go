@@ -15,6 +15,7 @@ import (
 func scrape_all_recipes(url string) (*Recipe, error) {
 	scraper := colly.NewCollector()
 	recipe := new(Recipe)
+	recipe.URL = url
 
 	scraper.OnError(func(_ *colly.Response, err error) {
 		fmt.Println(err.Error())

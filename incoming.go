@@ -60,9 +60,25 @@ func (app *application) handleIncomingMessage(w http.ResponseWriter, r *http.Req
 func (app *application) handleAuthenticatedMessage(user *models.User, msg string) string {
 	switch msg {
 	case "LIST":
-		return "Send list here!!!"
+		list, err := app.models.Lists.GetCurrentList(user.ID)
+		if err != nil {
+			fmt.Print(err.Error())
+			return "Issue getting your list right now! Please try again soon"
+		}
+		ingredientsList := list.GetIngredientsList()
+		response, err := ingredientsList.GenerateMessage()
+		if err != nil {
+			fmt.Print(err.Error())
+			return "Something went wrong, please try again soon"
+		}
+		return response
 	case "NEW":
-		return "Create new shopping trip"
+		err := app.models.Lists.StartNewList(user.ID)
+		if err != nil {
+			fmt.Print(err.Error())
+			return "Issue starting new list! Please try again soon"
+		}
+		return "New shopping list started. Send HELP for help."
 	default:
 		recipe, err := app.models.Sites.Scrape(msg)
 		if err != nil {

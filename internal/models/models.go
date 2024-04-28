@@ -13,6 +13,7 @@ type Models struct {
 	Users   UserModel
 	Sites   SiteModel
 	Recipes RecipeModel
+	Lists   ListModel
 }
 
 func NewModels(initDB *sql.DB) Models {
@@ -20,5 +21,6 @@ func NewModels(initDB *sql.DB) Models {
 		Users:   UserModel{db: initDB},
 		Sites:   SiteModel{db: initDB},
 		Recipes: RecipeModel{db: initDB},
+		Lists:   ListModel{db: initDB},
 	}
 }

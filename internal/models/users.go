@@ -47,17 +47,39 @@ func (m *UserModel) Get(phoneNumber string) (*User, error) {
 }
 
 func (m *UserModel) Create(phoneNumber string) (*User, error) {
-	stmt := `
+	insertUser := `
 		INSERT INTO users (phone_number)
 			VALUES ($1)
 		RETURNING id, phone_number`
 
+	insertNewList := `
+		INSERT INTO lists (user_id)
+		VALUES ($1)`
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	user := new(User)
-	err := m.db.QueryRowContext(ctx, stmt, phoneNumber).Scan(&user.ID, &user.PhoneNumber)
+	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
+		return nil, err
+	}
+
+	user := new(User)
+	err = tx.QueryRowContext(ctx, insertUser, phoneNumber).Scan(&user.ID, &user.PhoneNumber)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, err
+	}
+
+	_, err = tx.ExecContext(ctx, insertNewList, user.ID)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		_ = tx.Rollback()
 		return nil, err
 	}
 
